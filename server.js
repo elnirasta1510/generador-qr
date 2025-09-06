@@ -1,60 +1,83 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
-const multer = require('multer');
+const bodyParser = require('body-parser');
 const QRCode = require('qrcode');
 const path = require('path');
-
 const app = express();
-const db = new sqlite3.Database('personas.db');
-const upload = multer({ dest: 'uploads/' });
+const port = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static('uploads'));
+// Base pública de Render
+const BASE_URL = 'https://generador-qr-ay1e.onrender.com';
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static('public'));
+
+const db = new sqlite3.Database('./hospital.db');
 
 // Crear tabla si no existe
-db.run(`CREATE TABLE IF NOT EXISTS personas (
+db.run(`CREATE TABLE IF NOT EXISTS personal (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT,
   telefono TEXT,
   sector TEXT,
-  foto_url TEXT
+  guardia TEXT,
+  foto TEXT
 )`);
 
-// Ruta para registrar persona
-app.post('/registrar', upload.single('foto'), (req, res) => {
-  const { nombre, telefono, sector } = req.body;
-  const foto_url = req.file ? `/uploads/${req.file.filename}` : '';
+// Página principal
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-  db.run(`INSERT INTO personas (nombre, telefono, sector, foto_url) VALUES (?, ?, ?, ?)`,
-    [nombre, telefono, sector, foto_url],
+// Registro y generación de QR
+app.post('/registrar', (req, res) => {
+  const { nombre, telefono, sector, guardia, foto } = req.body;
+
+  db.run(`INSERT INTO personal (nombre, telefono, sector, guardia, foto)
+          VALUES (?, ?, ?, ?, ?)`,
+    [nombre, telefono, sector, guardia, foto],
     function (err) {
-      if (err) return res.status(500).send('Error al guardar');
+      if (err) {
+        return res.send('Error al registrar');
+      }
 
-      const perfilUrl = `http://localhost:3000/perfil/${this.lastID}`;
+      const perfilUrl = `${BASE_URL}/perfil/${this.lastID}`;
+
       QRCode.toDataURL(perfilUrl, (err, qr) => {
-        if (err) return res.status(500).send('Error al generar QR');
-        res.send({ id: this.lastID, qr, perfilUrl });
+        if (err) {
+          return res.send('Error al generar QR');
+        }
+
+        res.send(`
+          <h2>QR generado para ${nombre}</h2>
+          <img src="${qr}" />
+          <p><a href="${perfilUrl}" target="_blank">Ver perfil</a></p>
+          <p><a href="/">Volver</a></p>
+        `);
       });
     });
 });
 
-// Ruta para ver perfil
+// Ver perfil
 app.get('/perfil/:id', (req, res) => {
   const id = req.params.id;
-  db.get(`SELECT * FROM personas WHERE id = ?`, [id], (err, row) => {
-    if (err || !row) return res.status(404).send('No encontrado');
+
+  db.get(`SELECT * FROM personal WHERE id = ?`, [id], (err, row) => {
+    if (err || !row) {
+      return res.send('Perfil no encontrado');
+    }
 
     res.send(`
-      <h1>${row.nombre}</h1>
-      <p>Teléfono: ${row.telefono}</p>
-      <p>Sector: ${row.sector}</p>
-      <img src="${row.foto_url}" alt="Foto" style="max-width:200px">
+      <h2>Perfil de ${row.nombre}</h2>
+      <p><strong>Teléfono:</strong> ${row.telefono}</p>
+      <p><strong>Sector:</strong> ${row.sector}</p>
+      <p><strong>Guardia:</strong> ${row.guardia}</p>
+      <img src="${row.foto}" alt="Foto de ${row.nombre}" width="200" />
+      <p><a href="/">Volver</a></p>
     `);
   });
 });
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
 
-app.listen(3000, () => console.log('Servidor en http://localhost:3000'));
+app.listen(port, () => {
+  console.log(`Servidor corriendo en http://localhost:${port}`);
+});
