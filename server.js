@@ -6,7 +6,7 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Base pública de Render
+// URL pública de Render
 const BASE_URL = 'https://generador-qr-ay1e.onrender.com';
 
 app.use(bodyParser.urlencoded({ extended: true }));
