@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro Hospital - Generador de QR</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      background-color: #f4f4f4;
+    }
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    #qr-preview {
+      margin-top: 30px;
+      text-align: center;
+    }
+    #qr-preview img {
+      max-width: 200px;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #qr-preview, #qr-preview * {
+        visibility: visible;
+      }
+      #qr-preview {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>Registro de Personal Hospitalario</h2>
+  <form id="registro-form" enctype="multipart/form-data">
+    <div class="form-group">
+      <label>Nombre y Apellido</label>
+      <input type="text" name="nombre" required>
+    </div>
+    <div class="form-group">
+      <label>Teléfono</label>
+      <input type="text" name="telefono" required>
+    </div>
+    <div class="form-group">
+      <label>Sector</label>
+      <select name="sector" required>
+        <option value="Guardia">Guardia</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Foto</label>
+      <input type="file" name="foto" accept="image/*" required>
+    </div>
+    <button type="submit">Generar QR</button>
+  </form>
+
+  <div id="qr-preview"></div>
+
+  <script>
+    const form = document.getElementById('registro-form');
+    const qrPreview = document.getElementById('qr-preview');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+
+      const response = await fetch('/registrar', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      qrPreview.innerHTML = `
+        <h3>QR generado</h3>
+        <img src="${result.qr}" alt="QR">
+        <p><a href="${result.perfilUrl}" target="_blank">Ver perfil</a></p>
+        <button onclick="window.print()">Imprimir QR</button>
+      `;
+    });
+  </script>
+</body>
+</html>
