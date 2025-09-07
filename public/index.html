@@ -1,0 +1,19 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Generador de QR</title>
+</head>
+<body>
+  <h1>Bienvenido al Generador de QR</h1>
+  <form action="/registrar" method="POST">
+    <input type="text" name="nombre" placeholder="Nombre" required />
+    <input type="text" name="telefono" placeholder="Teléfono" required />
+    <input type="text" name="sector" placeholder="Sector" required />
+    <input type="text" name="guardia" placeholder="Guardia" required />
+    <input type="text" name="foto" placeholder="URL de la foto" required />
+    <button type="submit">Generar QR</button>
+  </form>
+</body>
+</html>
