@@ -2,164 +2,164 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Generador de QR - Guardia Hospitalaria</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generador QR - Hospital</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background-color: #f2f2f2;
+      background-color: #f9f9f9;
       margin: 0;
       padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      text-align: center;
     }
 
     h1 {
       color: #2c3e50;
+    }
+
+    .top-links {
       margin-bottom: 20px;
+    }
+
+    .top-links a {
+      margin: 0 10px;
+      color: #3498db;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .top-links a:hover {
+      text-decoration: underline;
     }
 
     form {
       background-color: #fff;
       padding: 20px;
+      margin: 0 auto;
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      width: 100%;
       max-width: 400px;
     }
 
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-
-    input {
+    input, select {
       width: 100%;
       padding: 10px;
+      margin-bottom: 15px;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
 
-    input[type="file"] {
-      padding: 5px;
-    }
-
     button {
-      width: 100%;
-      padding: 12px;
+      padding: 10px 20px;
       background-color: #3498db;
       color: white;
       border: none;
       border-radius: 4px;
-      font-size: 16px;
       cursor: pointer;
-      margin-top: 10px;
+      font-size: 16px;
     }
 
     button:hover {
       background-color: #2980b9;
     }
 
-    #qr-preview {
-      margin-top: 30px;
-      text-align: center;
+    #foto-preview {
+      margin-top: 10px;
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
       display: none;
     }
 
-    #qr-preview img {
-      max-width: 300px;
+    #qr {
+      margin-top: 30px;
+    }
+
+    #qr img {
+      max-width: 200px;
       margin-bottom: 10px;
     }
 
-    footer {
-      margin-top: 30px;
-      font-size: 14px;
-      color: #888;
+    #qr button {
+      margin: 5px;
     }
   </style>
 </head>
 <body>
-  <h1>Generador de QR - Guardia</h1>
+  <h1>Generador de QR para Personal del Hospital</h1>
+
+  <div class="top-links">
+    <a href="/logout">🔒 Cerrar sesión</a>
+    <a href="/exportar">📄 Exportar a Excel</a>
+    <a href="/historial">📋 Ver historial</a>
+  </div>
+
   <form id="qr-form" enctype="multipart/form-data">
-    <div class="form-group">
-      <label for="nombre">Nombre y Apellido</label>
-      <input type="text" id="nombre" name="nombre" required>
-    </div>
-    <div class="form-group">
-      <label for="telefono">Teléfono</label>
-      <input type="text" id="telefono" name="telefono" required>
-    </div>
-    <div class="form-group">
-      <label for="sector">Sector</label>
-      <input type="text" id="sector" name="sector" value="Guardia" readonly>
-    </div>
-    <div class="form-group">
-      <label for="guardia">Guardia</label>
-      <input type="text" id="guardia" name="guardia" required>
-    </div>
-    <div class="form-group">
-      <label for="foto">Foto del profesional</label>
-      <input type="file" id="foto" name="foto" accept="image/*" required>
-    </div>
+    <input type="text" name="nombre" placeholder="Nombre completo" required>
+    <input type="text" name="telefono" placeholder="Teléfono" required>
+    <select name="sector" required>
+      <option value="">-- Seleccionar sector --</option>
+      <option value="Emergencias">Emergencias</option>
+      <option value="Pediatría">Pediatría</option>
+      <option value="Laboratorio">Laboratorio</option>
+      <option value="Administración">Administración</option>
+      <option value="Mantenimiento">Mantenimiento</option>
+    </select>
+    <select name="guardia" required>
+      <option value="">-- Turno de guardia --</option>
+      <option value="Mañana">Mañana</option>
+      <option value="Tarde">Tarde</option>
+      <option value="Noche">Noche</option>
+    </select>
+    <input type="file" name="foto" accept="image/*" required onchange="mostrarPreview(event)">
+    <img id="foto-preview" src="#" alt="Vista previa de la foto">
     <button type="submit">Generar QR</button>
   </form>
 
-  <div id="qr-preview">
-    <h2>QR generado</h2>
-    <img id="qr-img" src="" alt="QR generado">
-    <br>
-    <button onclick="imprimirQR()">🖨️ Imprimir</button>
-    <button onclick="descargarQR()">⬇️ Descargar</button>
-  </div>
-
-  <footer>
-    &copy; Hospital Salta - Sistema de Identificación QR
-  </footer>
+  <div id="qr"></div>
 
   <script>
-    const form = document.getElementById('qr-form');
-    const qrPreview = document.getElementById('qr-preview');
-    const qrImg = document.getElementById('qr-img');
+    function mostrarPreview(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const preview = document.getElementById('foto-preview');
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
 
-    form.addEventListener('submit', async function(e) {
+    document.getElementById('qr-form').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const formData = new FormData(form);
+      const formData = new FormData(this);
 
-      try {
-        const res = await fetch('/registrar', {
-          method: 'POST',
-          body: formData
-        });
+      const res = await fetch('/registrar', {
+        method: 'POST',
+        body: formData
+      });
 
-        const data = await res.json();
-        if (!data.qr) throw new Error('No se recibió el QR');
-
-        qrImg.src = data.qr;
-        qrPreview.style.display = 'block';
-      } catch (err) {
-        alert('Error al generar el QR: ' + err.message);
+      const data = await res.json();
+      const qrDiv = document.getElementById('qr');
+      if (data.qr) {
+        qrDiv.innerHTML = `
+          <h3>QR generado:</h3>
+          <img src="${data.qr}" alt="Código QR" />
+          <br>
+          <button onclick="window.print()">🖨️ Imprimir</button>
+          <button onclick="descargarQR('${data.qr}')">⬇️ Descargar</button>
+        `;
+      } else {
+        qrDiv.innerHTML = '<p>Error al generar el QR</p>';
       }
     });
 
-    function imprimirQR() {
-      const win = window.open('', '_blank');
-      win.document.write('<img src="' + qrImg.src + '" style="width:300px;">');
-      win.document.close();
-      win.focus();
-      win.print();
-    }
-
-    function descargarQR() {
-      const link = document.createElement('a');
-      link.href = qrImg.src;
-      link.download = 'qr_guardia.png';
-      link.click();
+    function descargarQR(dataUrl) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'codigo_qr.png';
+      a.click();
     }
   </script>
 </body>

@@ -5,14 +5,39 @@ const QRCode = require('qrcode');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const session = require('express-session');
 
 const app = express();
 const port = process.env.PORT || 3000;
-
-// URL pública de Render
 const BASE_URL = 'https://generador-qr-ay1e.onrender.com';
 
-// Configurar almacenamiento de fotos
+// Usuario autorizado
+const USER = 'admin';
+const PASS = 'qr2024';
+
+// Sesión
+app.use(session({
+  secret: 'claveSecreta123',
+  resave: false,
+  saveUninitialized: true
+}));
+
+// Middleware de autenticación
+app.use((req, res, next) => {
+  if (
+    req.path === '/login' ||
+    req.path === '/logout' ||
+    req.path.startsWith('/public') ||
+    req.path.startsWith('/uploads') ||
+    req.session.loggedIn
+  ) {
+    next();
+  } else {
+    res.redirect('/login');
+  }
+});
+
+// Multer para subir fotos
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dir = path.join(__dirname, 'public', 'uploads');
@@ -24,15 +49,13 @@ const storage = multer.diskStorage({
     cb(null, uniqueName);
   }
 });
-
 const upload = multer({ storage });
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 const db = new sqlite3.Database('./hospital.db');
-
-// Crear tabla si no existe
 db.run(`CREATE TABLE IF NOT EXISTS personal (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT,
@@ -47,7 +70,29 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Registro y generación de QR
+// Login
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.post('/login', express.urlencoded({ extended: true }), (req, res) => {
+  const { username, password } = req.body;
+  if (username === USER && password === PASS) {
+    req.session.loggedIn = true;
+    res.redirect('/');
+  } else {
+    res.send('<h3>Usuario o contraseña incorrectos</h3><a href="/login">Volver</a>');
+  }
+});
+
+// Logout
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/login');
+  });
+});
+
+// Registrar y generar QR
 app.post('/registrar', upload.single('foto'), (req, res) => {
   const { nombre, telefono, sector, guardia } = req.body;
   const fotoPath = `/uploads/${req.file.filename}`;
@@ -91,6 +136,8 @@ app.get('/perfil/:id', (req, res) => {
     `);
   });
 });
+
+// Exportar a Excel
 app.get('/exportar', (req, res) => {
   db.all(`SELECT * FROM personal`, [], (err, rows) => {
     if (err) {
@@ -107,6 +154,105 @@ app.get('/exportar', (req, res) => {
     res.send(csv);
   });
 });
+
+// Historial de registros
+app.get('/historial', (req, res) => {
+  db.all(`SELECT * FROM personal ORDER BY id DESC`, [], (err, rows) => {
+    if (err) {
+      return res.status(500).send('Error al obtener el historial');
+    }
+
+    let html = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Historial de Registros</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f9f9f9;
+            padding: 20px;
+          }
+          h2 {
+            text-align: center;
+            color: #2c3e50;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+          }
+          th {
+            background-color: #3498db;
+            color: white;
+          }
+          img {
+            max-width: 80px;
+            border-radius: 4px;
+          }
+          a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: bold;
+          }
+          a:hover {
+            text-decoration: underline;
+          }
+          .volver {
+            display: block;
+            margin-top: 30px;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>Historial de Registros</h2>
+        <table>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Sector</th>
+            <th>Guardia</th>
+            <th>Foto</th>
+            <th>QR</th>
+          </tr>
+    `;
+
+    rows.forEach(row => {
+      const perfilUrl = `${BASE_URL}/perfil/${row.id}`;
+      html += `
+        <tr>
+          <td>${row.id}</td>
+          <td>${row.nombre}</td>
+          <td>${row.telefono}</td>
+          <td>${row.sector}</td>
+          <td>${row.guardia}</td>
+          <td><img src="${row.foto}" alt="Foto"></td>
+          <td><a href="${perfilUrl}" target="_blank">Ver QR</a></td>
+        </tr>
+      `;
+    });
+
+    html += `
+        </table>
+        <div class="volver">
+          <a href="/">← Volver al formulario</a>
+        </div>
+      </body>
+      </html>
+    `;
+
+    res.send(html);
+  });
+});
+
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });
