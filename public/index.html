@@ -92,25 +92,31 @@
     <a href="/exportar">📄 Exportar a Excel</a>
     <a href="/historial">📋 Ver historial</a>
   </div>
-
-  <form id="qr-form" enctype="multipart/form-data">
-    <input type="text" name="nombre" placeholder="Nombre completo" required>
-    <input type="text" name="telefono" placeholder="Teléfono" required>
-    <select name="sector" required>
-      <option value="">-- Seleccionar sector --</option>
-      <option value="Guardia">Guardia</option>
-      <option value="Laboratorio">Laboratorio</option>
-      <option value="Administración">Administración</option>
-      <select name="guardia" required>
-      <option value="">-- Turno de guardia --</option>
-      <option value="Mañana">Mañana</option>
-      <option value="Tarde">Tarde</option>
-      <option value="Noche">Noche</option>
-    </select>
-    <input type="file" name="foto" accept="image/*" required onchange="mostrarPreview(event)">
-    <img id="foto-preview" src="#" alt="Vista previa de la foto">
-    <button type="submit">Generar QR</button>
-  </form>
+<form id="qr-form" enctype="multipart/form-data">
+  <input type="text" name="nombre" placeholder="Nombre completo" required>
+  
+  <input type="text" name="telefono" placeholder="Teléfono" required>
+  
+  <select name="sector" required>
+    <option value="">-- Seleccionar sector --</option>
+    <option value="Guardia">Guardia</option>
+    <option value="Laboratorio">Laboratorio</option>
+    <option value="Administración">Administración</option>
+  </select>
+  
+  <select name="guardia" required>
+    <option value="">-- Turno de guardia --</option>
+    <option value="Mañana">Mañana</option>
+    <option value="Tarde">Tarde</option>
+    <option value="Noche">Noche</option>
+  </select>
+  
+  <input type="file" name="foto" accept="image/*" required onchange="mostrarPreview(event)">
+  
+  <img id="foto-preview" src="#" alt="Vista previa de la foto">
+  
+  <button type="submit">Generar QR</button>
+</form>
 
   <div id="qr"></div>
 
