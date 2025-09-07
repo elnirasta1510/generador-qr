@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Generador QR - Hospital</title>
+  <title>Generador QR - HSB</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -85,7 +85,7 @@
   </style>
 </head>
 <body>
-  <h1>Generador de QR para Personal del Hospital</h1>
+  <h1>Generador de QR Guardia HSB</h1>
 
   <div class="top-links">
     <a href="/logout">🔒 Cerrar sesión</a>
@@ -98,13 +98,10 @@
     <input type="text" name="telefono" placeholder="Teléfono" required>
     <select name="sector" required>
       <option value="">-- Seleccionar sector --</option>
-      <option value="Emergencias">Emergencias</option>
-      <option value="Pediatría">Pediatría</option>
+      <option value="Guardia">Guardia</option>
       <option value="Laboratorio">Laboratorio</option>
       <option value="Administración">Administración</option>
-      <option value="Mantenimiento">Mantenimiento</option>
-    </select>
-    <select name="guardia" required>
+      <select name="guardia" required>
       <option value="">-- Turno de guardia --</option>
       <option value="Mañana">Mañana</option>
       <option value="Tarde">Tarde</option>
