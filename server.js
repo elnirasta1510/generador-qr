@@ -3,11 +3,29 @@ const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
 const QRCode = require('qrcode');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
 // URL pública de Render
 const BASE_URL = 'https://generador-qr-ay1e.onrender.com';
+
+// Configurar almacenamiento de fotos
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = path.join(__dirname, 'public', 'uploads');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({ storage });
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -30,30 +48,26 @@ app.get('/', (req, res) => {
 });
 
 // Registro y generación de QR
-app.post('/registrar', (req, res) => {
-  const { nombre, telefono, sector, guardia, foto } = req.body;
+app.post('/registrar', upload.single('foto'), (req, res) => {
+  const { nombre, telefono, sector, guardia } = req.body;
+  const fotoPath = `/uploads/${req.file.filename}`;
 
   db.run(`INSERT INTO personal (nombre, telefono, sector, guardia, foto)
           VALUES (?, ?, ?, ?, ?)`,
-    [nombre, telefono, sector, guardia, foto],
+    [nombre, telefono, sector, guardia, fotoPath],
     function (err) {
       if (err) {
-        return res.send('Error al registrar');
+        return res.status(500).json({ error: 'Error al registrar' });
       }
 
       const perfilUrl = `${BASE_URL}/perfil/${this.lastID}`;
 
       QRCode.toDataURL(perfilUrl, (err, qr) => {
         if (err) {
-          return res.send('Error al generar QR');
+          return res.status(500).json({ error: 'Error al generar QR' });
         }
 
-        res.send(`
-          <h2>QR generado para ${nombre}</h2>
-          <img src="${qr}" />
-          <p><a href="${perfilUrl}" target="_blank">Ver perfil</a></p>
-          <p><a href="/">Volver</a></p>
-        `);
+        res.json({ qr });
       });
     });
 });
@@ -77,7 +91,22 @@ app.get('/perfil/:id', (req, res) => {
     `);
   });
 });
+app.get('/exportar', (req, res) => {
+  db.all(`SELECT * FROM personal`, [], (err, rows) => {
+    if (err) {
+      return res.status(500).send('Error al obtener los datos');
+    }
 
+    let csv = 'ID,Nombre,Teléfono,Sector,Guardia,Foto\n';
+    rows.forEach(row => {
+      csv += `${row.id},"${row.nombre}","${row.telefono}","${row.sector}","${row.guardia}","${row.foto}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=personal_qr.csv');
+    res.send(csv);
+  });
+});
 app.listen(port, () => {
   console.log(`Servidor corriendo en http://localhost:${port}`);
 });

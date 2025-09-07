@@ -66,14 +66,15 @@
       background-color: #2980b9;
     }
 
-    #combo-preview {
+    #qr-preview {
       margin-top: 30px;
       text-align: center;
       display: none;
     }
 
-    canvas {
-      margin-top: 10px;
+    #qr-preview img {
+      max-width: 300px;
+      margin-bottom: 10px;
     }
 
     footer {
@@ -85,7 +86,7 @@
 </head>
 <body>
   <h1>Generador de QR - Guardia</h1>
-  <form id="qr-form">
+  <form id="qr-form" enctype="multipart/form-data">
     <div class="form-group">
       <label for="nombre">Nombre y Apellido</label>
       <input type="text" id="nombre" name="nombre" required>
@@ -109,75 +110,55 @@
     <button type="submit">Generar QR</button>
   </form>
 
-  <div id="combo-preview">
-    <h2>QR + Foto</h2>
-    <canvas id="combo-canvas" width="300" height="500"></canvas>
+  <div id="qr-preview">
+    <h2>QR generado</h2>
+    <img id="qr-img" src="" alt="QR generado">
     <br>
-    <button onclick="imprimirCombo()">🖨️ Imprimir</button>
-    <button onclick="descargarCombo()">⬇️ Descargar</button>
+    <button onclick="imprimirQR()">🖨️ Imprimir</button>
+    <button onclick="descargarQR()">⬇️ Descargar</button>
   </div>
 
   <footer>
     &copy; Hospital Salta - Sistema de Identificación QR
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script>
     const form = document.getElementById('qr-form');
-    const comboCanvas = document.getElementById('combo-canvas');
-    const ctx = comboCanvas.getContext('2d');
-    const preview = document.getElementById('combo-preview');
+    const qrPreview = document.getElementById('qr-preview');
+    const qrImg = document.getElementById('qr-img');
 
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
       e.preventDefault();
+      const formData = new FormData(form);
 
-      const nombre = document.getElementById('nombre').value;
-      const telefono = document.getElementById('telefono').value;
-      const sector = document.getElementById('sector').value;
-      const guardia = document.getElementById('guardia').value;
-      const fotoInput = document.getElementById('foto');
+      try {
+        const res = await fetch('/registrar', {
+          method: 'POST',
+          body: formData
+        });
 
-      const datosQR = `Nombre: ${nombre}\nTeléfono: ${telefono}\nSector: ${sector}\nGuardia: ${guardia}`;
+        const data = await res.json();
+        if (!data.qr) throw new Error('No se recibió el QR');
 
-      QRCode.toDataURL(datosQR, { width: 200 }, function (err, qrUrl) {
-        if (err) return console.error(err);
-
-        if (fotoInput.files.length > 0) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            const img = new Image();
-            img.onload = function() {
-              ctx.clearRect(0, 0, comboCanvas.width, comboCanvas.height);
-              ctx.fillStyle = "#fff";
-              ctx.fillRect(0, 0, comboCanvas.width, comboCanvas.height);
-
-              ctx.drawImage(img, 50, 20, 200, 200); // Foto
-              const qrImg = new Image();
-              qrImg.onload = function() {
-                ctx.drawImage(qrImg, 50, 250, 200, 200); // QR
-                preview.style.display = 'block';
-              };
-              qrImg.src = qrUrl;
-            };
-            img.src = e.target.result;
-          };
-          reader.readAsDataURL(fotoInput.files[0]);
-        }
-      });
+        qrImg.src = data.qr;
+        qrPreview.style.display = 'block';
+      } catch (err) {
+        alert('Error al generar el QR: ' + err.message);
+      }
     });
 
-    function imprimirCombo() {
+    function imprimirQR() {
       const win = window.open('', '_blank');
-      win.document.write('<img src="' + comboCanvas.toDataURL() + '" style="width:300px;">');
+      win.document.write('<img src="' + qrImg.src + '" style="width:300px;">');
       win.document.close();
       win.focus();
       win.print();
     }
 
-    function descargarCombo() {
+    function descargarQR() {
       const link = document.createElement('a');
-      link.href = comboCanvas.toDataURL();
-      link.download = 'qr_guardia_combo.png';
+      link.href = qrImg.src;
+      link.download = 'qr_guardia.png';
       link.click();
     }
   </script>
